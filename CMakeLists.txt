@@ -33,5 +33,9 @@ add_executable(websocket_client example/websocket_client.cpp)
 target_link_libraries(websocket_client websockets)
 target_include_directories(websocket_client PRIVATE ${CMAKE_SOURCE_DIR}/third_party/libwebsockets/include)
 
+add_executable(websocket_client_ssl example/websocket_client_ssl.cpp)
+target_link_libraries(websocket_client_ssl websockets)
+target_include_directories(websocket_client_ssl PRIVATE ${CMAKE_SOURCE_DIR}/third_party/libwebsockets/include)
+
 
 

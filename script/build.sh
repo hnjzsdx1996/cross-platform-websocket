@@ -20,6 +20,7 @@ make cross_platform_websocket_shared
 # 编译测试程序
 make hello_world
 make websocket_client
+make websocket_client_ssl
 
 cd -
 echo "编译完成"

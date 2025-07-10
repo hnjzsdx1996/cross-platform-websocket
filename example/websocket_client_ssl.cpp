@@ -15,7 +15,7 @@ static int callback_ws(struct lws *wsi, enum lws_callback_reasons reason,
                       void *user, void *in, size_t len) {
     switch (reason) {
         case LWS_CALLBACK_CLIENT_ESTABLISHED:
-            printf("[WebSocket] 已连接服务器，准备发送消息...\n");
+            printf("[WebSocket SSL] 已连接服务器，准备发送消息...\n");
             lws_callback_on_writable(wsi);
             break;
         case LWS_CALLBACK_CLIENT_WRITEABLE: {
@@ -24,21 +24,21 @@ static int callback_ws(struct lws *wsi, enum lws_callback_reasons reason,
                 size_t msg_len = strlen(message);
                 memcpy(&buf[LWS_PRE], message, msg_len);
                 lws_write(wsi, &buf[LWS_PRE], msg_len, LWS_WRITE_TEXT);
-                printf("[WebSocket] 已发送消息: %s\n", message);
+                printf("[WebSocket SSL] 已发送消息: %s\n", message);
                 send_once = 1;
             }
             break;
         }
         case LWS_CALLBACK_CLIENT_RECEIVE:
-            printf("[WebSocket] 收到服务器回复: %.*s\n", (int)len, (char *)in);
+            printf("[WebSocket SSL] 收到服务器回复: %.*s\n", (int)len, (char *)in);
             interrupted = 1; // 收到回复后退出
             break;
         case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
-            printf("[WebSocket] 连接出错\n");
+            printf("[WebSocket SSL] 连接出错\n");
             interrupted = 1;
             break;
         case LWS_CALLBACK_CLIENT_CLOSED:
-            printf("[WebSocket] 连接关闭\n");
+            printf("[WebSocket SSL] 连接关闭\n");
             interrupted = 1;
             break;
         default:
@@ -68,6 +68,9 @@ int main(void) {
     memset(&info, 0, sizeof info);
     info.port = CONTEXT_PORT_NO_LISTEN;
     info.protocols = protocols;
+    
+    // 添加 SSL 全局初始化选项，避免 OpenSSL 错误
+    info.options = LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT;
 
     // 可选：提升日志级别，便于调试
     // lws_set_log_level(LLL_ERR | LLL_WARN | LLL_NOTICE | LLL_INFO | LLL_DEBUG | LLL_HEADER | LLL_CLIENT | LLL_LATENCY, NULL);
@@ -80,17 +83,17 @@ int main(void) {
 
     memset(&ccinfo, 0, sizeof ccinfo);
     ccinfo.context = context;
-    ccinfo.address = "ws.ifelse.io";
-    ccinfo.port = 80;
+    ccinfo.address = "echo.websocket.org";  // 使用支持 SSL 的测试服务器
+    ccinfo.port = 443;  // HTTPS 端口
     ccinfo.path = "/";
     ccinfo.host = ccinfo.address;
     ccinfo.origin = ccinfo.address;
     ccinfo.protocol = protocols[0].name;
-    ccinfo.ssl_connection = 0; // 使用明文 ws 连接（端口 80）
+    ccinfo.ssl_connection = LCCSCF_USE_SSL | LCCSCF_SKIP_SERVER_CERT_HOSTNAME_CHECK; // 启用 SSL
 
     wsi = lws_client_connect_via_info(&ccinfo);
     if (!wsi) {
-        fprintf(stderr, "WebSocket connect failed\n");
+        fprintf(stderr, "WebSocket SSL connect failed\n");
         lws_context_destroy(context);
         return 1;
     }
@@ -101,4 +104,4 @@ int main(void) {
     lws_context_destroy(context);
 
     return 0;
-}
+} 
