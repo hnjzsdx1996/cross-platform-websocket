@@ -1,0 +1,96 @@
+@startuml ComponentDiagram
+
+!theme plain
+skinparam componentStyle rectangle
+skinparam componentFontSize 12
+skinparam packageFontSize 14
+skinparam packageFontStyle bold
+
+package "External API Layer" as EXTERNAL {
+    component "Java Client" as JAVA #FCE4EC
+    component "Python Client" as PYTHON #FCE4EC
+    component "Go Client" as GO #FCE4EC
+    component "JS Client" as JS #FCE4EC
+    component "C++ Client" as CPP #FCE4EC
+}
+
+package "Platform Bridge Layer" as BRIDGE {
+    component "JNI Bridge" as JNI #E1F5FE
+    component "SWIG Bridge" as SWIG #E1F5FE
+    component "CGO Bridge" as CGO #E1F5FE
+    component "Emscripten Bridge" as EMSCRIPTEN #E1F5FE
+}
+
+package "API Layer" as API {
+    component "C API" as C_API #F3E5F5
+    component "C++ API" as CPP_API #F3E5F5
+}
+
+package "Business Management Layer" as BUSINESS {
+    component "Connection Manager" as CONN_MGR #FFF3E0
+    component "Message Manager" as MSG_MGR #FFF3E0
+    component "Event Manager" as EVENT_MGR #FFF3E0
+    component "Config Manager" as CONFIG_MGR #FFF3E0
+}
+
+package "Core Components Layer" as CORE {
+    component "DataLink" as DATALINK #E8F5E8
+    component "Logger" as LOGGER #E8F5E8
+    component "ThreadPool" as THREADPOOL #E8F5E8
+    component "Utils" as UTILS #E8F5E8
+}
+
+package "Platform Abstraction Layer" as PLATFORM {
+    component "JS Platform Bridge" as JS_PLATFORM #F1F8E9
+    component "Native Platform Bridge" as NATIVE_PLATFORM #F1F8E9
+}
+
+package "Implementation Layer" as IMPL {
+    component "libwebsockets" as LWS #F1F8E9
+    component "PLOG" as PLOG #F1F8E9
+    component "Emscripten" as EM #F1F8E9
+    component "System APIs" as SYS #F1F8E9
+}
+
+' 外部API层 -> 平台桥接层
+JAVA --> JNI
+PYTHON --> SWIG
+GO --> CGO
+JS --> EMSCRIPTEN
+CPP --> CPP_API
+
+' 平台桥接层 -> API层
+JNI --> C_API
+SWIG --> C_API
+CGO --> C_API
+EMSCRIPTEN --> C_API
+
+' API层 -> 业务管理层
+C_API --> CONN_MGR
+CPP_API --> CONN_MGR
+
+' 业务管理层内部关系
+CONN_MGR --> MSG_MGR
+CONN_MGR --> EVENT_MGR
+CONN_MGR --> CONFIG_MGR
+
+' 业务管理层 -> 核心组件层
+CONN_MGR --> DATALINK
+MSG_MGR --> LOGGER
+EVENT_MGR --> THREADPOOL
+CONFIG_MGR --> UTILS
+
+' 核心组件层 -> 平台抽象层
+DATALINK --> JS_PLATFORM
+DATALINK --> NATIVE_PLATFORM
+LOGGER --> JS_PLATFORM
+LOGGER --> NATIVE_PLATFORM
+THREADPOOL --> NATIVE_PLATFORM
+
+' 平台抽象层 -> 实现层
+JS_PLATFORM --> EM
+NATIVE_PLATFORM --> LWS
+NATIVE_PLATFORM --> PLOG
+NATIVE_PLATFORM --> SYS
+
+@enduml 

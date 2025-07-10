@@ -1,0 +1,11 @@
+prefix=/usr/local
+exec_prefix=${prefix}
+includedir=${prefix}/include
+libdir=${prefix}/lib
+
+Name: websocket_framework
+Description: Cross-platform WebSocket client framework
+Version: 1.0.0
+Cflags: -I${includedir}/websocket_framework
+Libs: -L${libdir} -lwebsocket_framework
+Requires: 

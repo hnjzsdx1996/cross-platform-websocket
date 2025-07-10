@@ -1,0 +1,60 @@
+@startuml DataFlowSequence
+
+!theme plain
+skinparam sequenceFontSize 12
+skinparam participantFontSize 12
+
+participant "External Client" as CLIENT
+participant "Platform Bridge" as BRIDGE
+participant "C API" as C_API
+participant "C++ API" as CPP_API
+participant "Business Manager" as BUSINESS
+participant "Core Components" as CORE
+participant "Platform Abstraction" as PLATFORM
+participant "Implementation" as IMPL
+participant "WebSocket Server" as SERVER
+
+== 请求流 ==
+
+CLIENT -> BRIDGE: 调用语言特定API
+note right: Java/Python/Go/JS/C++
+
+BRIDGE -> C_API: 调用C风格API
+note right: websocket_connect()\nwebsocket_send_message()
+
+C_API -> CPP_API: 调用C++对象API
+note right: WebSocketManager
+
+CPP_API -> BUSINESS: 业务逻辑处理
+note right: ConnectionManager\nMessageManager
+
+BUSINESS -> CORE: 核心功能调用
+note right: DataLink\nLogger\nThreadPool
+
+CORE -> PLATFORM: 平台能力抽象
+note right: PlatformInterface
+
+PLATFORM -> IMPL: 具体实现
+note right: libwebsockets/JS
+
+IMPL -> SERVER: 网络通信
+
+== 响应流 ==
+
+SERVER -> IMPL: 服务器响应
+
+IMPL -> PLATFORM: 平台回调
+
+PLATFORM -> CORE: 事件处理
+
+CORE -> BUSINESS: 消息处理
+
+BUSINESS -> CPP_API: 回调触发
+
+CPP_API -> C_API: 回调传递
+
+C_API -> BRIDGE: 回调传递
+
+BRIDGE -> CLIENT: 回调传递
+
+@enduml 

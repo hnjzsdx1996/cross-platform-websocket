@@ -1,0 +1,37 @@
+@startuml DataFlow
+
+!theme plain
+skinparam activityFontSize 12
+skinparam activityFontStyle bold
+
+start
+
+:External Client;
+note right: Java/Python/Go/JS/C++
+
+:Platform Bridge;
+note right: JNI/SWIG/CGO/Emscripten
+
+:C API Layer;
+note right: websocket_connect()\nwebsocket_send_message()
+
+:C++ API Layer;
+note right: WebSocketManager
+
+:Business Manager;
+note right: ConnectionManager\nMessageManager
+
+:Core Components;
+note right: DataLink\nLogger\nThreadPool
+
+:Platform Abstraction;
+note right: PlatformInterface
+
+:Implementation;
+note right: libwebsockets/JS
+
+:WebSocket Server;
+
+stop
+
+@enduml 

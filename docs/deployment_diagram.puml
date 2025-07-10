@@ -1,0 +1,121 @@
+@startuml DeploymentDiagram
+
+!theme plain
+skinparam nodeFontSize 12
+skinparam artifactFontSize 12
+skinparam packageFontSize 14
+
+node "Android Platform" as ANDROID {
+    artifact "Android App" as ANDROID_APP #C8E6C9 {
+        artifact "Java WebSocket Client" as ANDROID_JAVA
+        artifact "JNI Bridge" as ANDROID_JNI
+        artifact "Native Library" as ANDROID_NATIVE
+    }
+    
+    artifact "Android Runtime" as ANDROID_RUNTIME #C8E6C9 {
+        artifact "JVM" as ANDROID_JVM
+        artifact "System Libraries" as ANDROID_SYS
+    }
+}
+
+node "iOS Platform" as IOS {
+    artifact "iOS App" as IOS_APP #FFCDD2 {
+        artifact "Swift/ObjC Client" as IOS_CLIENT
+        artifact "C++ Bridge" as IOS_CPP
+        artifact "Native Library" as IOS_NATIVE
+    }
+    
+    artifact "iOS Runtime" as IOS_RUNTIME #FFCDD2 {
+        artifact "iOS System" as IOS_SYS
+        artifact "Core Foundation" as IOS_CF
+    }
+}
+
+node "Desktop Platform" as DESKTOP {
+    artifact "Desktop App" as DESKTOP_APP #BBDEFB {
+        artifact "C++ Client" as DESKTOP_CPP
+        artifact "Native Library" as DESKTOP_NATIVE
+    }
+    
+    artifact "Desktop Runtime" as DESKTOP_RUNTIME #BBDEFB {
+        artifact "OS Libraries" as DESKTOP_SYS
+        artifact "libwebsockets" as DESKTOP_LWS
+    }
+}
+
+node "Web Platform" as WEB {
+    artifact "Web Browser" as WEB_BROWSER #F8BBD9 {
+        artifact "JavaScript Client" as WEB_JS
+        artifact "Emscripten Module" as WEB_EM
+        artifact "WebAssembly" as WEB_WASM
+    }
+    
+    artifact "Browser Runtime" as WEB_RUNTIME #F8BBD9 {
+        artifact "Web APIs" as WEB_APIS
+        artifact "WebSocket API" as WEB_WS_API
+    }
+}
+
+node "Server Platform" as SERVER {
+    artifact "Server Application" as SERVER_APP #D1C4E9 {
+        artifact "Python Client" as SERVER_PYTHON
+        artifact "Go Client" as SERVER_GO
+        artifact "Java Client" as SERVER_JAVA
+        artifact "C++ Client" as SERVER_CPP
+    }
+    
+    artifact "Server Runtime" as SERVER_RUNTIME #D1C4E9 {
+        artifact "Python Runtime" as SERVER_PY_RUNTIME
+        artifact "Go Runtime" as SERVER_GO_RUNTIME
+        artifact "JVM" as SERVER_JVM
+        artifact "System Libraries" as SERVER_SYS
+    }
+}
+
+' 跨平台共享组件
+artifact "Shared Core Library" as SHARED_CORE #D1C4E9 {
+    artifact "C API" as SHARED_C_API
+    artifact "Business Logic" as SHARED_BUSINESS
+    artifact "Core Components" as SHARED_COMPONENTS
+}
+
+' Android 平台关系
+ANDROID_JAVA --> ANDROID_JNI
+ANDROID_JNI --> ANDROID_NATIVE
+ANDROID_NATIVE --> ANDROID_JVM
+ANDROID_JVM --> ANDROID_SYS
+
+' iOS 平台关系
+IOS_CLIENT --> IOS_CPP
+IOS_CPP --> IOS_NATIVE
+IOS_NATIVE --> IOS_SYS
+IOS_SYS --> IOS_CF
+
+' Desktop 平台关系
+DESKTOP_CPP --> DESKTOP_NATIVE
+DESKTOP_NATIVE --> DESKTOP_SYS
+DESKTOP_SYS --> DESKTOP_LWS
+
+' Web 平台关系
+WEB_JS --> WEB_EM
+WEB_EM --> WEB_WASM
+WEB_WASM --> WEB_APIS
+WEB_APIS --> WEB_WS_API
+
+' Server 平台关系
+SERVER_PYTHON --> SERVER_PY_RUNTIME
+SERVER_GO --> SERVER_GO_RUNTIME
+SERVER_JAVA --> SERVER_JVM
+SERVER_CPP --> SERVER_SYS
+
+' 共享组件关系
+ANDROID_NATIVE --> SHARED_CORE
+IOS_NATIVE --> SHARED_CORE
+DESKTOP_NATIVE --> SHARED_CORE
+WEB_WASM --> SHARED_CORE
+SERVER_PYTHON --> SHARED_CORE
+SERVER_GO --> SHARED_CORE
+SERVER_JAVA --> SHARED_CORE
+SERVER_CPP --> SHARED_CORE
+
+@enduml 

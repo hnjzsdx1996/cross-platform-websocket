@@ -1,0 +1,128 @@
+@startuml WebSocketSequence
+
+!theme plain
+skinparam sequenceFontSize 12
+skinparam participantFontSize 12
+
+participant "External Client" as CLIENT
+participant "Platform Bridge" as BRIDGE
+participant "C API" as C_API
+participant "C++ API" as CPP_API
+participant "Business Manager" as BUSINESS
+participant "Connection Manager" as CONN_MGR
+participant "DataLink" as DATALINK
+participant "Platform Bridge" as PLATFORM
+participant "libwebsockets/JS" as IMPL
+
+== 初始化阶段 ==
+
+CLIENT -> BRIDGE: createContext()
+BRIDGE -> C_API: websocket_create_context()
+C_API -> CPP_API: WebSocketManager::create()
+CPP_API -> BUSINESS: BusinessManager::initialize()
+BUSINESS -> CONN_MGR: ConnectionManager::initialize()
+CONN_MGR -> DATALINK: DataLink::initialize()
+DATALINK -> PLATFORM: PlatformInterface::initialize()
+PLATFORM -> IMPL: 平台特定初始化
+IMPL --> PLATFORM: 初始化完成
+PLATFORM --> DATALINK: 初始化完成
+DATALINK --> CONN_MGR: 初始化完成
+CONN_MGR --> BUSINESS: 初始化完成
+BUSINESS --> CPP_API: 初始化完成
+CPP_API --> C_API: 返回 context
+C_API --> BRIDGE: 返回 context
+BRIDGE --> CLIENT: 返回 context
+
+== 连接阶段 ==
+
+CLIENT -> BRIDGE: connect(url, protocol)
+BRIDGE -> C_API: websocket_connect(ctx, url, protocol)
+C_API -> CPP_API: WebSocketManager::connect(url, protocol)
+CPP_API -> BUSINESS: BusinessManager::getConnectionManager()
+BUSINESS -> CONN_MGR: ConnectionManager::createConnection(url, protocol)
+CONN_MGR -> DATALINK: DataLink::connect(url, protocol)
+DATALINK -> PLATFORM: PlatformInterface::websocketConnect(url)
+PLATFORM -> IMPL: 建立 WebSocket 连接
+IMPL --> PLATFORM: 连接建立
+PLATFORM --> DATALINK: 连接成功
+DATALINK --> CONN_MGR: 连接成功
+CONN_MGR --> BUSINESS: 连接成功
+BUSINESS --> CPP_API: 连接成功
+CPP_API -> CPP_API: 触发 onOpen 回调
+CPP_API -> C_API: 触发 onOpen 回调
+C_API -> BRIDGE: 触发 onOpen 回调
+BRIDGE -> CLIENT: 触发 onOpen 回调
+CPP_API --> C_API: 返回连接状态
+C_API --> BRIDGE: 返回连接状态
+BRIDGE --> CLIENT: 返回连接状态
+
+== 发送消息阶段 ==
+
+CLIENT -> BRIDGE: sendMessage(message)
+BRIDGE -> C_API: websocket_send_message(ctx, message)
+C_API -> CPP_API: WebSocketManager::sendMessage(message)
+CPP_API -> BUSINESS: BusinessManager::getMessageManager()
+BUSINESS -> CONN_MGR: MessageManager::sendMessage(connectionId, message)
+CONN_MGR -> DATALINK: DataLink::sendMessage(message)
+DATALINK -> PLATFORM: PlatformInterface::websocketSend(message)
+PLATFORM -> IMPL: 发送 WebSocket 消息
+IMPL --> PLATFORM: 发送成功
+PLATFORM --> DATALINK: 发送成功
+DATALINK --> CONN_MGR: 发送成功
+CONN_MGR --> BUSINESS: 发送成功
+BUSINESS --> CPP_API: 发送成功
+CPP_API --> C_API: 返回发送状态
+C_API --> BRIDGE: 返回发送状态
+BRIDGE --> CLIENT: 返回发送状态
+
+== 接收消息阶段 ==
+
+IMPL -> PLATFORM: 收到 WebSocket 消息
+PLATFORM -> DATALINK: PlatformInterface::onMessage(message)
+DATALINK -> CONN_MGR: DataLink::onMessage(message)
+CONN_MGR -> BUSINESS: MessageManager::handleMessage(connectionId, message)
+BUSINESS -> CPP_API: 触发 onMessage 回调
+CPP_API -> C_API: 触发 onMessage 回调
+C_API -> BRIDGE: 触发 onMessage 回调
+BRIDGE -> CLIENT: 触发 onMessage 回调
+
+== 断开连接阶段 ==
+
+CLIENT -> BRIDGE: disconnect()
+BRIDGE -> C_API: websocket_disconnect(ctx)
+C_API -> CPP_API: WebSocketManager::disconnect()
+CPP_API -> BUSINESS: BusinessManager::getConnectionManager()
+BUSINESS -> CONN_MGR: ConnectionManager::closeConnection(connectionId)
+CONN_MGR -> DATALINK: DataLink::disconnect()
+DATALINK -> PLATFORM: PlatformInterface::websocketClose()
+PLATFORM -> IMPL: 关闭 WebSocket 连接
+IMPL --> PLATFORM: 连接关闭
+PLATFORM --> DATALINK: 连接关闭
+DATALINK --> CONN_MGR: 连接关闭
+CONN_MGR --> BUSINESS: 连接关闭
+BUSINESS --> CPP_API: 连接关闭
+CPP_API -> CPP_API: 触发 onClose 回调
+CPP_API -> C_API: 触发 onClose 回调
+C_API -> BRIDGE: 触发 onClose 回调
+BRIDGE -> CLIENT: 触发 onClose 回调
+
+== 清理阶段 ==
+
+CLIENT -> BRIDGE: destroyContext()
+BRIDGE -> C_API: websocket_destroy_context(ctx)
+C_API -> CPP_API: WebSocketManager::destroy()
+CPP_API -> BUSINESS: BusinessManager::shutdown()
+BUSINESS -> CONN_MGR: ConnectionManager::shutdown()
+CONN_MGR -> DATALINK: DataLink::shutdown()
+DATALINK -> PLATFORM: PlatformInterface::shutdown()
+PLATFORM -> IMPL: 平台特定清理
+IMPL --> PLATFORM: 清理完成
+PLATFORM --> DATALINK: 清理完成
+DATALINK --> CONN_MGR: 清理完成
+CONN_MGR --> BUSINESS: 清理完成
+BUSINESS --> CPP_API: 清理完成
+CPP_API --> C_API: 清理完成
+C_API --> BRIDGE: 清理完成
+BRIDGE --> CLIENT: 清理完成
+
+@enduml 

@@ -1,0 +1,244 @@
+@startuml SimpleArchitecture
+
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam classFontSize 10
+skinparam packageFontSize 12
+skinparam packageFontStyle bold
+
+' 定义颜色
+!define EXTERNAL_COLOR #FCE4EC
+!define BRIDGE_COLOR #E1F5FE
+!define API_COLOR #F3E5F5
+!define BUSINESS_COLOR #FFF3E0
+!define CORE_COLOR #E8F5E8
+!define PLATFORM_COLOR #F1F8E9
+
+package "External API Layer" as EXTERNAL {
+    class JavaClient {
+        +connect(url: String): boolean
+        +sendMessage(message: String): boolean
+        +disconnect(): void
+    }
+    
+    class PythonClient {
+        +connect(url: str): bool
+        +send_message(message: str): bool
+        +disconnect(): None
+    }
+    
+    class GoClient {
+        +Connect(url string): bool
+        +SendMessage(message string): bool
+        +Disconnect(): None
+    }
+    
+    class JSClient {
+        +connect(url: string): Promise<boolean>
+        +sendMessage(message: string): boolean
+        +disconnect(): void
+    }
+    
+    class CppClient {
+        +connect(url: string): bool
+        +sendMessage(message: string): bool
+        +disconnect(): void
+    }
+}
+
+package "Platform Bridge Layer" as BRIDGE {
+    class JNIBridge {
+        +createContext(): long
+        +connect(ctx: long, url: String): boolean
+        +sendMessage(ctx: long, message: String): boolean
+        +disconnect(ctx: long): void
+    }
+    
+    class SWIGBridge {
+        +websocket_create_context(): void*
+        +websocket_connect(ctx: void*, url: char*): bool
+        +websocket_send_message(ctx: void*, message: char*): bool
+        +websocket_disconnect(ctx: void*): void
+    }
+    
+    class CGOBridge {
+        +NewWebSocketClient(): *WebSocketClient
+        +Connect(url string): bool
+        +SendMessage(message string): bool
+        +Disconnect(): None
+    }
+    
+    class EmscriptenBridge {
+        +createContext(): number
+        +connect(ctx: number, url: string): boolean
+        +sendMessage(ctx: number, message: string): boolean
+        +disconnect(ctx: number): void
+    }
+}
+
+package "API Layer" as API {
+    class C_API {
+        +websocket_create_context(): websocket_context_t
+        +websocket_connect(ctx: websocket_context_t, url: char*): bool
+        +websocket_send_message(ctx: websocket_context_t, message: char*): bool
+        +websocket_disconnect(ctx: websocket_context_t): void
+    }
+    
+    class Cpp_API {
+        +create(): WebSocketManager*
+        +connect(url: string): bool
+        +sendMessage(message: string): bool
+        +disconnect(): void
+    }
+}
+
+package "Business Layer" as BUSINESS {
+    class BusinessManager {
+        -connectionManager: ConnectionManager
+        -messageManager: MessageManager
+        +initialize(): void
+        +getConnectionManager(): ConnectionManager*
+        +getMessageManager(): MessageManager*
+    }
+    
+    class ConnectionManager {
+        -connections: map<string, Connection*>
+        +createConnection(url: string): Connection*
+        +closeConnection(id: string): void
+        +isConnected(id: string): bool
+    }
+    
+    class MessageManager {
+        -messageQueue: MessageQueue
+        +sendMessage(connectionId: string, message: string): bool
+        +handleMessage(connectionId: string, message: string): void
+    }
+}
+
+package "Core Components" as CORE {
+    class DataLink {
+        <<interface>>
+        +connect(url: string): bool
+        +disconnect(): void
+        +sendMessage(message: string): bool
+        +isConnected(): bool
+    }
+    
+    class Logger {
+        <<interface>>
+        +logInfo(message: string): void
+        +logError(message: string): void
+        +logDebug(message: string): void
+    }
+    
+    class ThreadPool {
+        -workers: vector<thread>
+        -taskQueue: queue<function<void()>>
+        +enqueue(task: function<void()>): void
+        +shutdown(): void
+    }
+}
+
+package "Platform Layer" as PLATFORM {
+    class PlatformInterface {
+        <<interface>>
+        +logInfo(message: string): void
+        +websocketConnect(url: string): bool
+        +websocketSend(message: string): bool
+        +websocketClose(): void
+    }
+    
+    class JSPlatformBridge {
+        -jsContext: void*
+        +logInfo(message: string): void
+        +websocketConnect(url: string): bool
+        +websocketSend(message: string): bool
+        +websocketClose(): void
+    }
+    
+    class NativePlatformBridge {
+        -logger: PLogLogger*
+        -threadPool: ThreadPool*
+        +logInfo(message: string): void
+        +websocketConnect(url: string): bool
+        +websocketSend(message: string): bool
+        +websocketClose(): void
+    }
+}
+
+' 关系定义
+' 外部API层 -> 平台桥接层
+JavaClient --> JNIBridge
+PythonClient --> SWIGBridge
+GoClient --> CGOBridge
+JSClient --> EmscriptenBridge
+CppClient --> Cpp_API
+
+' 平台桥接层 -> C API层
+JNIBridge --> C_API
+SWIGBridge --> C_API
+CGOBridge --> C_API
+EmscriptenBridge --> C_API
+
+' API层 -> 业务层
+C_API --> ConnectionManager
+Cpp_API --> BusinessManager
+
+' 业务层内部关系
+BusinessManager --> ConnectionManager
+BusinessManager --> MessageManager
+
+' 业务层 -> 核心组件层
+ConnectionManager --> DataLink
+MessageManager --> Logger
+BusinessManager --> ThreadPool
+
+' 核心组件层 -> 平台抽象层
+DataLink --> PlatformInterface
+Logger --> PlatformInterface
+ThreadPool --> PlatformInterface
+
+' 平台抽象层实现
+JSPlatformBridge ..|> PlatformInterface
+NativePlatformBridge ..|> PlatformInterface
+
+' 样式定义
+package EXTERNAL {
+    class JavaClient #EXTERNAL_COLOR
+    class PythonClient #EXTERNAL_COLOR
+    class GoClient #EXTERNAL_COLOR
+    class JSClient #EXTERNAL_COLOR
+    class CppClient #EXTERNAL_COLOR
+}
+
+package BRIDGE {
+    class JNIBridge #BRIDGE_COLOR
+    class SWIGBridge #BRIDGE_COLOR
+    class CGOBridge #BRIDGE_COLOR
+    class EmscriptenBridge #BRIDGE_COLOR
+}
+
+package API {
+    class C_API #API_COLOR
+    class Cpp_API #API_COLOR
+}
+
+package BUSINESS {
+    class BusinessManager #BUSINESS_COLOR
+    class ConnectionManager #BUSINESS_COLOR
+    class MessageManager #BUSINESS_COLOR
+}
+
+package CORE {
+    class DataLink #CORE_COLOR
+    class Logger #CORE_COLOR
+    class ThreadPool #CORE_COLOR
+}
+
+package PLATFORM {
+    class PlatformInterface #PLATFORM_COLOR
+    class JSPlatformBridge #PLATFORM_COLOR
+    class NativePlatformBridge #PLATFORM_COLOR
+}
+
+@enduml 

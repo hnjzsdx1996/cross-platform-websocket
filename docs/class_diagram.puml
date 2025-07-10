@@ -1,0 +1,461 @@
+@startuml CrossPlatformWebSocketArchitecture
+
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam classFontSize 12
+skinparam packageFontSize 14
+skinparam packageFontStyle bold
+
+' 定义颜色
+!define CORE_COLOR #E1F5FE
+!define API_COLOR #F3E5F5
+!define PLATFORM_COLOR #E8F5E8
+!define BUSINESS_COLOR #FFF3E0
+!define BRIDGE_COLOR #FCE4EC
+
+package "External API Layer" as EXTERNAL {
+    class JavaWebSocketClient {
+        +connect(url: String): boolean
+        +sendMessage(message: String): boolean
+        +disconnect(): void
+        +setOnOpen(callback: Runnable): void
+        +setOnMessage(callback: Consumer<String>): void
+    }
+    
+    class PythonWebSocketClient {
+        +connect(url: str, protocol: str = ""): bool
+        +send_message(message: str): bool
+        +disconnect(): None
+        +on_open: Callable
+        +on_message: Callable
+    }
+    
+    class GoWebSocketClient {
+        +Connect(url, protocol string): bool
+        +SendMessage(message string): bool
+        +Disconnect(): None
+        +OnOpen(callback func()): None
+        +OnMessage(callback func(string)): None
+    }
+    
+    class JSWebSocketClient {
+        +connect(url: string, protocol?: string): Promise<boolean>
+        +sendMessage(message: string): boolean
+        +disconnect(): void
+        +onOpen: (() => void) | null
+        +onMessage: ((message: string) => void) | null
+    }
+    
+    class CppWebSocketManager {
+        +create(): WebSocketManager*
+        +destroy(manager: WebSocketManager*): void
+        +connect(url: string, protocol: string): bool
+        +sendMessage(message: string): bool
+        +disconnect(): void
+        +setOnOpen(callback: function): void
+        +setOnMessage(callback: function): void
+    }
+}
+
+package "Platform Bridge Layer" as BRIDGE {
+    class JNIBridge {
+        +createContext(): long
+        +connect(ctx: long, url: String): boolean
+        +sendMessage(ctx: long, message: String): boolean
+        +disconnect(ctx: long): void
+        +destroyContext(ctx: long): void
+    }
+    
+    class SWIGBridge {
+        +websocket_create_context(): void*
+        +websocket_connect(ctx: void*, url: char*, protocol: char*): bool
+        +websocket_send_message(ctx: void*, message: char*): bool
+        +websocket_disconnect(ctx: void*): void
+        +websocket_destroy_context(ctx: void*): void
+    }
+    
+    class CGOBridge {
+        +NewWebSocketClient(): *WebSocketClient
+        +Connect(url, protocol string): bool
+        +SendMessage(message string): bool
+        +Disconnect(): None
+        +Close(): None
+    }
+    
+    class EmscriptenBridge {
+        +createContext(): number
+        +connect(ctx: number, url: string): boolean
+        +sendMessage(ctx: number, message: string): boolean
+        +disconnect(ctx: number): void
+        +destroyContext(ctx: number): void
+    }
+}
+
+package "C API Layer" as C_API {
+    class WebSocketAPI {
+        +websocket_create_context(): websocket_context_t
+        +websocket_destroy_context(ctx: websocket_context_t): void
+        +websocket_connect(ctx: websocket_context_t, url: char*, protocol: char*): bool
+        +websocket_send_message(ctx: websocket_context_t, message: char*): bool
+        +websocket_disconnect(ctx: websocket_context_t): void
+        +websocket_set_on_open(ctx: websocket_context_t, callback: function): void
+        +websocket_set_on_message(ctx: websocket_context_t, callback: function): void
+    }
+}
+
+package "C++ API Layer" as CPP_API {
+    class WebSocketManager {
+        -context: websocket_context_t
+        -callbacks: CallbackManager
+        +create(): WebSocketManager*
+        +destroy(manager: WebSocketManager*): void
+        +connect(url: string, protocol: string): bool
+        +sendMessage(message: string): bool
+        +disconnect(): void
+        +setOnOpen(callback: function): void
+        +setOnMessage(callback: function): void
+        +setOnClose(callback: function): void
+        +setOnError(callback: function): void
+    }
+    
+    class CallbackManager {
+        -onOpen: function
+        -onMessage: function
+        -onClose: function
+        -onError: function
+        +setOnOpen(callback: function): void
+        +setOnMessage(callback: function): void
+        +setOnClose(callback: function): void
+        +setOnError(callback: function): void
+        +triggerOnOpen(): void
+        +triggerOnMessage(message: string): void
+        +triggerOnClose(code: int, reason: string): void
+        +triggerOnError(error: string): void
+    }
+}
+
+package "Business Management Layer" as BUSINESS {
+    class BusinessManager {
+        -connectionManager: ConnectionManager
+        -messageManager: MessageManager
+        -eventManager: EventManager
+        -configManager: ConfigManager
+        +initialize(): void
+        +shutdown(): void
+        +getConnectionManager(): ConnectionManager*
+        +getMessageManager(): MessageManager*
+        +getEventManager(): EventManager*
+        +getConfigManager(): ConfigManager*
+    }
+    
+    class ConnectionManager {
+        -connections: map<string, Connection*>
+        -connectionPool: ConnectionPool
+        +createConnection(url: string, protocol: string): Connection*
+        +getConnection(id: string): Connection*
+        +closeConnection(id: string): void
+        +closeAllConnections(): void
+        +isConnected(id: string): bool
+    }
+    
+    class MessageManager {
+        -messageQueue: MessageQueue
+        -messageHandlers: map<string, MessageHandler*>
+        +sendMessage(connectionId: string, message: string): bool
+        +sendBinary(connectionId: string, data: void*, size: size_t): bool
+        +registerHandler(type: string, handler: MessageHandler*): void
+        +handleMessage(connectionId: string, message: string): void
+    }
+    
+    class EventManager {
+        -eventQueue: EventQueue
+        -eventHandlers: map<string, vector<EventHandler*>>
+        +registerHandler(eventType: string, handler: EventHandler*): void
+        +unregisterHandler(eventType: string, handler: EventHandler*): void
+        +emitEvent(eventType: string, data: void*): void
+        +processEvents(): void
+    }
+    
+    class ConfigManager {
+        -config: map<string, string>
+        -configFile: string
+        +loadConfig(file: string): bool
+        +saveConfig(file: string): bool
+        +getValue(key: string): string
+        +setValue(key: string, value: string): void
+        +hasKey(key: string): bool
+    }
+}
+
+package "Core Components Layer" as CORE {
+    package "DataLink" as DATALINK {
+        class DataLinkInterface {
+            <<interface>>
+            +connect(url: string, protocol: string): bool
+            +disconnect(): void
+            +sendMessage(message: string): bool
+            +sendBinary(data: void*, size: size_t): bool
+            +isConnected(): bool
+            +setOnOpen(callback: function): void
+            +setOnMessage(callback: function): void
+            +setOnClose(callback: function): void
+            +setOnError(callback: function): void
+        }
+        
+        class LibWebSocketsDataLink {
+            -context: lws_context*
+            -connection: lws*
+            +connect(url: string, protocol: string): bool
+            +disconnect(): void
+            +sendMessage(message: string): bool
+            +sendBinary(data: void*, size: size_t): bool
+            +isConnected(): bool
+            -handleCallback(reason: lws_callback_reasons, data: void*, len: size_t): int
+        }
+        
+        class JSDataLink {
+            -jsContext: void*
+            +connect(url: string, protocol: string): bool
+            +disconnect(): void
+            +sendMessage(message: string): bool
+            +sendBinary(data: void*, size: size_t): bool
+            +isConnected(): bool
+            -callJSFunction(functionName: string, args: vector<string>): void
+        }
+    }
+    
+    package "Logger" as LOGGER {
+        class LoggerInterface {
+            <<interface>>
+            +logInfo(message: string): void
+            +logError(message: string): void
+            +logDebug(message: string): void
+            +logWarning(message: string): void
+        }
+        
+        class PLogLogger {
+            -logger: plog::Logger*
+            +logInfo(message: string): void
+            +logError(message: string): void
+            +logDebug(message: string): void
+            +logWarning(message: string): void
+            +initialize(logFile: string): void
+        }
+        
+        class JSLogger {
+            -jsLogFunction: void*
+            +logInfo(message: string): void
+            +logError(message: string): void
+            +logDebug(message: string): void
+            +logWarning(message: string): void
+            -callJSLog(level: string, message: string): void
+        }
+    }
+    
+    package "ThreadPool" as THREADPOOL {
+        class ThreadPool {
+            -workers: vector<thread>
+            -taskQueue: queue<function<void()>>
+            -mutex: mutex
+            -condition: condition_variable
+            -stop: atomic<bool>
+            +ThreadPool(size: size_t): void
+            +~ThreadPool(): void
+            +enqueue(task: function<void()>): void
+            +shutdown(): void
+            -worker(): void
+        }
+        
+        class TaskQueue {
+            -tasks: queue<function<void()>>
+            -mutex: mutex
+            -condition: condition_variable
+            +push(task: function<void()>): void
+            +pop(): function<void()>
+            +empty(): bool
+            +size(): size_t
+            +wait(): void
+        }
+    }
+    
+    package "Utils" as UTILS {
+        class Base64Utils {
+            +encode(data: void*, size: size_t): string
+            +decode(data: string): vector<uint8_t>
+            +isValid(data: string): bool
+        }
+        
+        class CryptoUtils {
+            +hashSHA256(data: string): string
+            +generateRandomBytes(size: size_t): vector<uint8_t>
+            +encryptAES(data: string, key: string): string
+            +decryptAES(data: string, key: string): string
+        }
+        
+        class StringUtils {
+            +trim(str: string): string
+            +split(str: string, delimiter: string): vector<string>
+            +join(strings: vector<string>, delimiter: string): string
+            +toLower(str: string): string
+            +toUpper(str: string): string
+        }
+    }
+}
+
+package "Platform Abstraction Layer" as PLATFORM {
+    class PlatformInterface {
+        <<interface>>
+        +logInfo(message: string): void
+        +logError(message: string): void
+        +logDebug(message: string): void
+        +websocketConnect(url: string): bool
+        +websocketSend(message: string): bool
+        +websocketClose(): void
+        +createThread(func: function, arg: void*): void*
+        +joinThread(thread: void*): void
+        +getConfig(key: string): string
+        +setConfig(key: string, value: string): void
+    }
+    
+    class JSPlatformBridge {
+        -jsContext: void*
+        +logInfo(message: string): void
+        +logError(message: string): void
+        +logDebug(message: string): void
+        +websocketConnect(url: string): bool
+        +websocketSend(message: string): bool
+        +websocketClose(): void
+        +createThread(func: function, arg: void*): void*
+        +joinThread(thread: void*): void
+        +getConfig(key: string): string
+        +setConfig(key: string, value: string): void
+        -callJSFunction(functionName: string, args: vector<string>): void
+    }
+    
+    class NativePlatformBridge {
+        -logger: PLogLogger*
+        -threadPool: ThreadPool*
+        +logInfo(message: string): void
+        +logError(message: string): void
+        +logDebug(message: string): void
+        +websocketConnect(url: string): bool
+        +websocketSend(message: string): bool
+        +websocketClose(): void
+        +createThread(func: function, arg: void*): void*
+        +joinThread(thread: void*): void
+        +getConfig(key: string): string
+        +setConfig(key: string, value: string): void
+    }
+}
+
+' 关系定义
+' 外部API层 -> 平台桥接层
+JavaWebSocketClient --> JNIBridge
+PythonWebSocketClient --> SWIGBridge
+GoWebSocketClient --> CGOBridge
+JSWebSocketClient --> EmscriptenBridge
+CppWebSocketManager --> WebSocketManager
+
+' 平台桥接层 -> C API层
+JNIBridge --> WebSocketAPI
+SWIGBridge --> WebSocketAPI
+CGOBridge --> WebSocketAPI
+EmscriptenBridge --> WebSocketAPI
+
+' C++ API层 -> 业务管理层
+WebSocketManager --> BusinessManager
+CallbackManager --> WebSocketManager
+
+' 业务管理层内部关系
+BusinessManager --> ConnectionManager
+BusinessManager --> MessageManager
+BusinessManager --> EventManager
+BusinessManager --> ConfigManager
+
+' 业务管理层 -> 核心组件层
+ConnectionManager --> DataLinkInterface
+MessageManager --> MessageQueue
+EventManager --> EventQueue
+ConfigManager --> ConfigManager
+
+' 核心组件层内部关系
+LibWebSocketsDataLink ..|> DataLinkInterface
+JSDataLink ..|> DataLinkInterface
+PLogLogger ..|> LoggerInterface
+JSLogger ..|> LoggerInterface
+ThreadPool --> TaskQueue
+
+' 平台抽象层关系
+JSPlatformBridge ..|> PlatformInterface
+NativePlatformBridge ..|> PlatformInterface
+
+' 核心组件层 -> 平台抽象层
+DataLinkInterface --> PlatformInterface
+LoggerInterface --> PlatformInterface
+ThreadPool --> PlatformInterface
+
+' 样式定义
+package EXTERNAL {
+    class JavaWebSocketClient #BRIDGE_COLOR
+    class PythonWebSocketClient #BRIDGE_COLOR
+    class GoWebSocketClient #BRIDGE_COLOR
+    class JSWebSocketClient #BRIDGE_COLOR
+    class CppWebSocketManager #BRIDGE_COLOR
+}
+
+package BRIDGE {
+    class JNIBridge #BRIDGE_COLOR
+    class SWIGBridge #BRIDGE_COLOR
+    class CGOBridge #BRIDGE_COLOR
+    class EmscriptenBridge #BRIDGE_COLOR
+}
+
+package C_API {
+    class WebSocketAPI #API_COLOR
+}
+
+package CPP_API {
+    class WebSocketManager #API_COLOR
+    class CallbackManager #API_COLOR
+}
+
+package BUSINESS {
+    class BusinessManager #BUSINESS_COLOR
+    class ConnectionManager #BUSINESS_COLOR
+    class MessageManager #BUSINESS_COLOR
+    class EventManager #BUSINESS_COLOR
+    class ConfigManager #BUSINESS_COLOR
+}
+
+package CORE {
+    package DATALINK {
+        class DataLinkInterface #CORE_COLOR
+        class LibWebSocketsDataLink #CORE_COLOR
+        class JSDataLink #CORE_COLOR
+    }
+    
+    package LOGGER {
+        class LoggerInterface #CORE_COLOR
+        class PLogLogger #CORE_COLOR
+        class JSLogger #CORE_COLOR
+    }
+    
+    package THREADPOOL {
+        class ThreadPool #CORE_COLOR
+        class TaskQueue #CORE_COLOR
+    }
+    
+    package UTILS {
+        class Base64Utils #CORE_COLOR
+        class CryptoUtils #CORE_COLOR
+        class StringUtils #CORE_COLOR
+    }
+}
+
+package PLATFORM {
+    class PlatformInterface #PLATFORM_COLOR
+    class JSPlatformBridge #PLATFORM_COLOR
+    class NativePlatformBridge #PLATFORM_COLOR
+}
+
+@enduml 
